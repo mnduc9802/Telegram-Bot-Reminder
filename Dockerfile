@@ -1,19 +1,24 @@
 # Sử dụng image Python phiên bản 3.9
 FROM python:3.9
 
+# Cài đặt tzdata để hỗ trợ timezone
+RUN apt-get update && apt-get install -y tzdata
+
+# Thiết lập timezone cho container
+ENV TZ=Asia/Ho_Chi_Minh
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 # Thiết lập thư mục làm việc
 WORKDIR /app
 
-# Sao chép tệp tin từ thư mục hiện tại sang thư mục trong container
+# Copy requirements.txt trước
+COPY requirements.txt .
+
+# Cài đặt các thư viện từ requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy toàn bộ code source
 COPY . .
 
-# Cài đặt các thư viện cần thiết
-RUN pip install --no-cache-dir \
-    pyTelegramBotAPI \
-    datetime \
-    schedule \
-    pytz \
-    python-dotenv
-
-# Chạy ứng dụng khi container được khởi chạy
-CMD ["python", "main.py"]
+# Chạy ứng dụng với log
+CMD ["python", "-u", "main.py"]
