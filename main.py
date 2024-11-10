@@ -86,7 +86,7 @@ def send_monthly_reminder():
 
 def setup_schedule():
     # Lên lịch gửi tin nhắn hàng ngày lúc 17:00
-    schedule.every().day.at("10:00").do(send_daily_reminder)
+    schedule.every().day.at("17:00").do(send_daily_reminder)
     logger.info("Daily reminder scheduled for 17:00")
     # Lên lịch gửi tin nhắn báo cáo tuần vào 10:00 sáng thứ 7
     schedule.every().saturday.at("10:00").do(send_weekly_reminder)
