@@ -1,22 +1,41 @@
 import telebot
-from datetime import datetime
+from datetime import datetime, timedelta
 import schedule
 import time
 import pytz
 from dotenv import load_dotenv
 import os
 import logging
+from logging.handlers import MemoryHandler
 import sys
+from collections import deque
 
-# Cấu hình Logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)  # Ghi log ra stdout để Docker ghi nhận log
-    ]
-)
+class TimedMemoryHandler(MemoryHandler):
+    def __init__(self, days_limit=30): # days_limit là số ngày
+        self.log_buffer = deque(maxlen=10000)  # Giới hạn buffer size
+        self.days_limit = days_limit
+        super().__init__(capacity=1)
+
+    def emit(self, record):
+        record.created_dt = datetime.fromtimestamp(record.created)
+        self.log_buffer.append(record)
+        
+        # Xóa log cũ hơn 30 ngày
+        current_time = datetime.now()
+        cutoff_date = current_time - timedelta(days=self.days_limit)
+        
+        while self.log_buffer and self.log_buffer[0].created_dt < cutoff_date:
+            self.log_buffer.popleft()
+        
+        print(self.format(record))
+
+# Cấu hình Logging với TimedMemoryHandler
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+memory_handler = TimedMemoryHandler(days_limit=30)
+memory_handler.setFormatter(formatter)
+logger.addHandler(memory_handler)
 
 # Load biến môi trường từ file .env
 load_dotenv()
@@ -95,7 +114,8 @@ def send_weekly_reminder():
 def send_monthly_reminder():
     # Lấy ngày hiện tại theo múi giờ Việt Nam
     current_time = datetime.now(vietnam_tz)
-    # Kiểm tra xem có phải là ngày mùng 1 không
+    
+    # Chỉ gửi tin nhắn vào ngày mùng 1
     if current_time.day == 1:
         sheet_url = "https://docs.google.com/spreadsheets/d/1BzyuvJw_xQZEcapfBpTAx2IXPEmlT6ONrh3t1odUBuU/edit?gid=224745787#gid=224745787"
         monthly_message = """<b>BÁO CÁO THÁNG:</b>
@@ -104,11 +124,13 @@ def send_monthly_reminder():
     + <b>Deadline chung 12h ngày mùng 5 đầu tháng.</b>
     + Ngoài ra các bạn nhớ update lịch làm việc thực tế trong tháng & đăng ký lịch làm việc tháng mới vào file <a href="{}">Lịch làm việc</a> nhé!""".format(sheet_url)
         
-    success = send_message_with_retry(CHAT_ID, monthly_message, parse_mode="HTML")
-    if success:
-        logger.info(f"Monthly report reminder sent successfully at {current_time}")
+        success = send_message_with_retry(CHAT_ID, monthly_message, parse_mode="HTML")
+        if success:
+            logger.info(f"Monthly report reminder sent successfully at {current_time}")
+        else:
+            logger.error("Failed to send monthly reminder after all retries")
     else:
-        logger.error("Failed to send monthly reminder after all retries")
+        logger.info(f"Skipping monthly reminder - not first day of month (current day: {current_time.day})")
 
 def setup_schedule():
     # Lên lịch gửi tin nhắn hàng ngày lúc 17:00
