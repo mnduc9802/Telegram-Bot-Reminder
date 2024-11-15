@@ -1,5 +1,5 @@
 # Sử dụng image Python phiên bản 3.9
-FROM python:3.9
+FROM python:3.9-slim
 
 # Cài đặt tzdata để hỗ trợ timezone
 RUN apt-get update && apt-get install -y tzdata

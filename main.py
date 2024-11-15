@@ -148,7 +148,7 @@ def setup_schedule():
     while True:
         try:
             schedule.run_pending()
-            time.sleep(15)  # Check every 15 seconds
+            time.sleep(20)  # Check every 20 seconds
         except Exception as e:
             logger.error(f"Schedule execution error: {str(e)}")
 
