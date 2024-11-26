@@ -82,11 +82,35 @@ def send_message_with_retry(chat_id, message, max_retries=3, retry_delay=300, pa
     
     return False
 
+def get_vietnamese_weekday(date):
+    weekdays = {
+        0: "THỨ HAI",
+        1: "THỨ BA",
+        2: "THỨ TƯ",
+        3: "THỨ NĂM",
+        4: "THỨ SÁU",
+        5: "THỨ BẢY",
+        6: "CHỦ NHẬT"
+    }
+    return weekdays[date.weekday()]
+
+def get_week_number(date):
+    # Lấy ngày đầu tiên của tháng
+    first_day = date.replace(day=1)
+    # Điều chỉnh để tuần đầu tiên bắt đầu từ ngày 1
+    week_number = (date.day - 1) // 7 + 1
+    return week_number
+
+def format_date(date):
+    return date.strftime("%d/%m/%Y")
+
 def send_daily_reminder():
     current_time = datetime.now(vietnam_tz)
-    # Chỉ gửi tin nhắn vào các ngày trong tuần (0 = thứ 2, 6 = chủ nhật)
     if current_time.weekday() < 5:  # Từ thứ 2 đến thứ 6
-        daily_message = """<b>BÁO CÁO NGÀY:</b>
+        weekday = get_vietnamese_weekday(current_time)
+        date_str = format_date(current_time)
+        
+        daily_message = f"""<b>BÁO CÁO NGÀY {weekday}, {date_str}:</b>
     + Làm báo cáo cá nhân cuối ngày và lên kế hoạch làm việc ngày mai."""
         
         success = send_message_with_retry(CHAT_ID, daily_message, parse_mode="HTML")
@@ -96,33 +120,35 @@ def send_daily_reminder():
             logger.error("Failed to send daily reminder after all retries")
 
 def send_weekly_reminder():
+    current_time = datetime.now(vietnam_tz)
+    week_number = get_week_number(current_time)
+    month = current_time.strftime("%m/%Y")
+    
     sheet_url = "https://docs.google.com/spreadsheets/d/1BzyuvJw_xQZEcapfBpTAx2IXPEmlT6ONrh3t1odUBuU/edit?gid=224745787#gid=224745787"
-    weekly_message = """<b>TỔNG HỢP & NỘP BÁO CÁO TUẦN:</b>
+    weekly_message = f"""<b>TỔNG HỢP & NỘP BÁO CÁO TUẦN {week_number}, THÁNG {month}:</b>
     + Các đầu việc đã hoàn thành.
     + Các đầu việc đang làm dở dang trong tuần.
     + Dự kiến đầu việc trong tuần sau.
     + Báo cáo trực tiếp trong nhóm (BA, FE, BE, Sys, K5 INTERN), riêng BA/TESTER K5 gửi vào mail của chị.
-    + Ngoài ra các bạn nhớ update lịch làm việc thực tế trong tuần & đăng ký lịch làm việc tuần sau vào file <a href="{}">Lịch làm việc</a> nhé!""".format(sheet_url)
+    + Ngoài ra các bạn nhớ update lịch làm việc thực tế trong tuần & đăng ký lịch làm việc tuần sau vào file <a href="{sheet_url}">Lịch làm việc</a> nhé!"""
     
     success = send_message_with_retry(CHAT_ID, weekly_message, parse_mode="HTML")
     if success:
-        current_time = datetime.now(vietnam_tz)
         logger.info(f"Weekly report reminder sent successfully at {current_time}")
     else:
         logger.error("Failed to send weekly reminder after all retries")
 
 def send_monthly_reminder():
-    # Lấy ngày hiện tại theo múi giờ Việt Nam
     current_time = datetime.now(vietnam_tz)
     
-    # Chỉ gửi tin nhắn vào ngày mùng 1
     if current_time.day == 1:
+        month = current_time.strftime("%m/%Y")
         sheet_url = "https://docs.google.com/spreadsheets/d/1BzyuvJw_xQZEcapfBpTAx2IXPEmlT6ONrh3t1odUBuU/edit?gid=224745787#gid=224745787"
-        monthly_message = """<b>BÁO CÁO THÁNG:</b>
+        monthly_message = f"""<b>BÁO CÁO THÁNG {month}:</b>
     + Team Dev tổng hợp các đầu việc đã hoàn thành trong tháng vào file để tính point.
     + Team BA tổng hợp các đầu việc đã làm trong tháng vào form báo cáo mới.
     + <b>Deadline chung 12h ngày mùng 5 đầu tháng.</b>
-    + Ngoài ra các bạn nhớ update lịch làm việc thực tế trong tháng & đăng ký lịch làm việc tháng mới vào file <a href="{}">Lịch làm việc</a> nhé!""".format(sheet_url)
+    + Ngoài ra các bạn nhớ update lịch làm việc thực tế trong tháng & đăng ký lịch làm việc tháng mới vào file <a href="{sheet_url}">Lịch làm việc</a> nhé!"""
         
         success = send_message_with_retry(CHAT_ID, monthly_message, parse_mode="HTML")
         if success:
@@ -159,3 +185,4 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error(f"Bot startup failed: {str(e)}")
         sys.exit(1)
+      
