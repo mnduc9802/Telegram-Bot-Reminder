@@ -142,9 +142,10 @@ def send_monthly_reminder():
     current_time = datetime.now(vietnam_tz)
     
     if current_time.day == 1:
-        month = current_time.strftime("%m/%Y")
+        # Lấy tháng trước thay vì tháng hiện tại
+        previous_month = (current_time.replace(day=1) - timedelta(days=1)).strftime("%m/%Y")
         sheet_url = "https://docs.google.com/spreadsheets/d/1BzyuvJw_xQZEcapfBpTAx2IXPEmlT6ONrh3t1odUBuU/edit?gid=224745787#gid=224745787"
-        monthly_message = f"""<b>BÁO CÁO THÁNG {month}:</b>
+        monthly_message = f"""<b>BÁO CÁO THÁNG {previous_month}:</b>
     + Team Dev tổng hợp các đầu việc đã hoàn thành trong tháng vào file để tính point.
     + Team BA tổng hợp các đầu việc đã làm trong tháng vào form báo cáo mới.
     + <b>Deadline chung 12h ngày mùng 5 đầu tháng.</b>
