@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  telebot-reminder:
+    image: registry.eztek.net/telebot-reminder/telebot-reminder:latest
+    container_name: telebot-reminder
+    restart: always
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - CHAT_ID=${CHAT_ID}
